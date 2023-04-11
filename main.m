@@ -6,4 +6,5 @@ for k = 1:N
 end
 %% i am update again
 disp("修改")
+disp("edited in github");
 %%
