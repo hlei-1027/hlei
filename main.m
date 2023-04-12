@@ -1,8 +1,8 @@
 %% stealthy attack design and its detection
 clc;
 clear;
-%% ³õÊ¼»¯
-% ÏµÍ³¾ØÕó
+%% åˆå§‹åŒ–
+% ç³»ç»ŸçŸ©é˜µ
 nx = 3;
 ny = 2;
 Ts = 0.05;
@@ -25,132 +25,151 @@ Ae = [ A    zeros(nx, ny)
 Be = [B; -C*B];
 We = [eye(nx); -C];
 Ve = [zeros(nx,ny); eye(ny)];
-% Ğ­·½²î¾ØÕó
+% åæ–¹å·®çŸ©é˜µ
 Q = 0.001*eye(3);
 R =0.01*eye(2);
 S = [0.0105 0.0003
-    0.0003 0.0105];    % ²úÉú¹¥»÷ĞÅºÅµÄĞ­·½²î¾ØÕó
-P = 10*eye(3);  % ÓÃ×÷kalman
+    0.0003 0.0105];    % äº§ç”Ÿæ”»å‡»ä¿¡å·çš„åæ–¹å·®çŸ©é˜µ
+P = 10*eye(3);  % ç”¨ä½œkalman
 P_ = P;
 
 K = [0.1643 0.0616
     -0.1475 -0.0805
-    0.0276 -0.1826];  % ÎÈ¶¨µÄkalman filter gain
+    0.0276 -0.1826];  % ç¨³å®šçš„kalman filter gain
 
 L = [0.8681 -0.8864 -0.4226 -0.6788 -0.2934
     0.6013 -1.1476 -0.1093 -1.0402 0.0259];
 
-u = zeros(ny, N);     % ÎŞ¹¥»÷¿ØÖÆĞÅºÅ
-ua = zeros(ny, N);    %  ¹¥»÷×´Ì¬ÏÂµÄ¿ØÖÆĞÅºÅ
-ua_ = zeros(ny, N);   % ua_ = ua + beta(k)  ÔâÊÜ¹¥»÷ºóµÄ¿ØÖÆĞÅºÅ
+u = zeros(ny, N);     % æ— æ”»å‡»æ§åˆ¶ä¿¡å·
+ua = zeros(ny, N);    %  æ”»å‡»çŠ¶æ€ä¸‹çš„æ§åˆ¶ä¿¡å·
+ua_ = zeros(ny, N);   % ua_ = ua + beta(k)  é­å—æ”»å‡»åçš„æ§åˆ¶ä¿¡å·
 
-x = zeros(nx, N);     % ÏµÍ³×´Ì¬
+x = zeros(nx, N);     % ç³»ç»ŸçŠ¶æ€
 xa = zeros(nx, N);
-x_bar = zeros(nx, N);  % ÏµÍ³×´Ì¬¹À¼Æ×´Ì¬
+x_bar = zeros(nx, N);  % ç³»ç»ŸçŠ¶æ€ä¼°è®¡çŠ¶æ€
 xa_bar = zeros(nx, N);
-x(:,1) = [2 2 2]';       % ³õÊ¼»¯
-xa(:,1) = [2 2 2]';      % ³õÊ¼»¯
+x(:,1) = [2 2 2]';       % åˆå§‹åŒ–
+xa(:,1) = [2 2 2]';      % åˆå§‹åŒ–
 x_bar(:,1) = [0 0 0]';
 xa_bar(:,1) = [0 0 0]';
 % det_u = -L*
 
-w = mvnrnd([0 0 0], Q, N)';   % ÔëÉù
+w = mvnrnd([0 0 0], Q, N)';   % å™ªå£°
 v = mvnrnd([0 0], R, N)';
-xi = mvnrnd([0 0], S, N)';  % ¹¥»÷ĞÅºÅÖĞµÄµÚÈı¸ö²¿·Ö
+xi = mvnrnd([0 0], S, N)';  % æ”»å‡»ä¿¡å·ä¸­çš„ç¬¬ä¸‰ä¸ªéƒ¨åˆ†
 
-y = zeros(ny, N);           % ÏµÍ³Êä³ö
+y = zeros(ny, N);           % ç³»ç»Ÿè¾“å‡º
 y_bar = C*x_bar;
-ya = zeros(ny, N);          % ÔâÊÜ¹¥»÷Ê±ÏµÍ³Êä³ö
+ya = zeros(ny, N);          % é­å—æ”»å‡»æ—¶ç³»ç»Ÿè¾“å‡º
 ya_bar = C*xa_bar;
-ya_ = zeros(ny, N);         % ya_ = ya + arf(k) ±»¹¥»÷µÄÊä³öĞÅºÅ
+ya_ = zeros(ny, N);         % ya_ = ya + arf(k) è¢«æ”»å‡»çš„è¾“å‡ºä¿¡å·
 
-% alpha = zeros(ny, N);  % ¹¥´«¸ĞÆ÷µÄ¹¥»÷ĞÅºÅ
+% alpha = zeros(ny, N);  % æ”»ä¼ æ„Ÿå™¨çš„æ”»å‡»ä¿¡å·
 % alpha  = -ya + ya_bar + xi;
 ya_ = ya_bar + xi;
 y(:,1) = C * x(:,1) + v(:,1);
 ya(:,1) = C * xa(:,1) + v(:,1);
 
-r = [30; 20];                 % ²Î¿¼ÊäÈë
-e = zeros(ny, N);      % ¸ú×ÙÎó²î
+r = [30; 20];                 % å‚è€ƒè¾“å…¥
+e = zeros(ny, N);      % è·Ÿè¸ªè¯¯å·®
 ea = zeros(ny,N);
 ea_ = zeros(ny, N);
-e(:,1) = r - y(:,1);   % ÎŞ¹¥»÷
+e(:,1) = r - y(:,1);   % æ— æ”»å‡»
 ea(:,1) = r -ya(:,1);
 ea_(:,1) = r -ya_(:,1);
 xe_bar = [x_bar' e']';
 xea_bar = [xa_bar' ea_']';
-u(:,1) = -L*xe_bar(:,1);   % ³õÊ¼»¯
-ua(:,1) = -L*xea_bar(:,1);  % ¹¥»÷Ê±¿ØÖÆÆ÷Êä³ö³õÊ¼»¯
+u(:,1) = -L*xe_bar(:,1);   % åˆå§‹åŒ–
+ua(:,1) = -L*xea_bar(:,1);  % æ”»å‡»æ—¶æ§åˆ¶å™¨è¾“å‡ºåˆå§‹åŒ–
 beta_ = zeros(ny,N);
-beta_(:,100) = [10 10]';   % ×¢ÈëµÄ¹¥»÷ĞÅºÅbeta(k)
+beta_(:,100) = [10 10]';   % æ³¨å…¥çš„æ”»å‡»ä¿¡å·beta(k)
 ua_ = ua + beta_;
 
 F_stable = [0.2119 -0.0699
-            -1.7648 -0.0168];
+    -1.7648 -0.0168];
 F_unstable = [0.3188 -0.4336
-            -1.0578 0.3426];
+    -1.0578 0.3426];
 
-%% attack detection ²ÎÊı
-omiga_k = generate_invmat(ny, N);  % Ö÷¶¯ĞŞ¸ÄÊı¾İµÄÊ±±ä¿ÉÄæ¾ØÕó
-psai_k = generate_invmat(ny, N); 
+%% attack detection å‚æ•°
+omiga_k = generate_invmat(ny, N);  % ä¸»åŠ¨ä¿®æ”¹æ•°æ®çš„æ—¶å˜å¯é€†çŸ©é˜µ
+psai_k = generate_invmat(ny, N);
+
+ya_modified = zeros(ny, N);    % ä¸»åŠ¨ä¿®æ”¹æ•°æ®åçš„ya
+ya_modified(:,1) = omiga_k(:,:,1) * ya(:,1);
+
+ya_restored = zeros(ny, N);    % ä¸»åŠ¨æ¢å¤æ•°æ®åya'
+ya_restored(:,1) = inv(omiga_k(:,:,1)) * ya_(:,1);  % éœ€è¦è®¢æ­£
+
+ua_modified = zeros(ny, N);    % ä¸»åŠ¨ä¿®æ”¹åçš„ua
+ua_modified(:,1) = psai_k(:,:,1) * ua(:,1);
+
+ua_restored = zeros(ny, N);    % ä¸»åŠ¨æ¢å¤åçš„ua'
+ua_restored(:,1) = inv(psai_k(:,:,1))*ua_(:,1);
+
+Bk = B * inv(psai_k(:,:,1));
+Ck = omiga_k(:,:,1)*C;
+Rk = omiga_k(:,:,1)*R*omiga_k(:,:,1)';
+Sk = omiga_k(:,:,1)*S*omiga_k(:,:,1)';
+
+Kk = K * inv(omiga_k(:,:,1));
 
 %%  Simulation
 for k = 2 : N
-    x(:, k) = A * x(:, k-1) + B * u(:,k-1) + w(:,k-1);  % ÎŞ¹¥»÷
+    x(:, k) = A * x(:, k-1) + B * u(:,k-1) + w(:,k-1);  % æ— æ”»å‡»
     y(:, k) = C * x(:, k) + v(:, k);
 
-    xa(:, k) = A*xa(:,k-1) + B*ua_(:,k-1) + w(:,k-1);  % ÓĞ¹¥»÷
+    xa(:, k) = A*xa(:,k-1) + B*ua_(:,k-1) + w(:,k-1);  % æœ‰æ”»å‡»
     ya(:, k) = C * xa(:, k) + v(:, k);
 
     %     P_ = A * P * A' + Q;
     %     K = P_ * C'/(C*P*C' + R);
     x_bar(:, k) =  A * x_bar(:, k-1) + B * u(:,k-1) + K*(y(:, k) - C*(A * x_bar(:, k-1) + B * u(:,k-1)));
     y_bar(:,k) = C * x_bar(:,k);
-    xa_bar(:, k) =  A * xa_bar(:, k-1) + B * ua(:,k-1) + K*xi(:,k);   % ¹¥»÷Éè¼ÆµÄkalman ÓÃÓÚÌæ»»¹¥»÷ºóµÄÊä³ö£¬
+    xa_bar(:, k) =  A * xa_bar(:, k-1) + B * ua(:,k-1) + K*xi(:,k);   % æ”»å‡»è®¾è®¡çš„kalman ç”¨äºæ›¿æ¢æ”»å‡»åçš„è¾“å‡ºï¼Œ
     ya_bar(:,k) = C * xa_bar(:,k);
     ya_(:,k) = ya_bar(:,k) + xi(:,k);
 
     e(:, k) = r - y(:, k);
     ea_(:,k) = r - ya_(:,k);
-    % ¸üĞÂ
+    % æ›´æ–°
     xe_bar(:,k) = [(x_bar(:, k) -  x_bar(:, k - 1))' e(:, k)'];
     xea_bar(:,k) = [(xa_bar(:, k) -  xa_bar(:, k - 1))' ea_(:, k)'];
 
     u(:, k) = u(:, k -1) -L*xe_bar(:,k);
     ua(:, k) = ua(:, k -1) -L*xea_bar(:,k);
-    beta_(:,k) = F_stable*beta_(:,k-1);  % ×¢ÈëµÄ¹¥»÷ĞÅºÅ
+    beta_(:,k) = F_stable*beta_(:,k-1);  % æ³¨å…¥çš„æ”»å‡»ä¿¡å·
     if k == 100
-        beta_(:,k) = [10,10]';   % ¹¥»÷ĞÅºÅ³õÊ¼»¯
+        beta_(:,k) = [10,10]';   % æ”»å‡»ä¿¡å·åˆå§‹åŒ–
     end
 
     ua_(:,k) = ua(:,k) + beta_(:,k);
     %     P = (eye(3)-K*C)*P_;
 end
-%% plot -- ²Ğ²îÒ»ÖÂĞÔ
+%% plot -- æ®‹å·®ä¸€è‡´æ€§
 figure(1)
 subplot(2,1,1)
-z = y - y_bar;       % ²Ğ²î
+z = y - y_bar;       % æ®‹å·®
 plot(t,z);
 legend('z_1','z_2')
 title("without attack")
 subplot(2,1,2)
-za = ya_ - ya_bar;   % ¹¥»÷Ê±²Ğ²î
+za = ya_ - ya_bar;   % æ”»å‡»æ—¶æ®‹å·®
 plot(t,za);
 legend('za_1','za_2')
 title("under attack")
 
-%% plot -- Êä³ö·¢ÉúÆ«²î£¬ÑéÖ¤¹¥»÷µÄÒş±ÎĞÔ
+%% plot -- è¾“å‡ºå‘ç”Ÿåå·®ï¼ŒéªŒè¯æ”»å‡»çš„éšè”½æ€§
 figure(2)
 subplot(2,1,1)
 
 plot(t,r.*ones(ny,N));
 hold on
-plot(t,y);  % ÎŞ¹¥»÷Ê±µÄÊä³ö
+plot(t,y);  % æ— æ”»å‡»æ—¶çš„è¾“å‡º
 legend('y_1','y_2','r_1','r_2')
 title("without attack")
 
 subplot(2,1,2)
-plot(t,ya_)  % ±»¹¥»÷Ê±µÄÊä³ö
+plot(t,ya_)  % è¢«æ”»å‡»æ—¶çš„è¾“å‡º
 hold on
 plot(t,r.*ones(ny,N));
 legend('ya_1''','ya_2''','r_1','r_2')
@@ -159,6 +178,6 @@ title("under attack")
 figure(3)
 plot(t,r.*ones(ny,N));
 hold on
-plot(t,ya)  % Êµ¼ÊµÄÏµÍ³Êä³ö
+plot(t,ya)  % å®é™…çš„ç³»ç»Ÿè¾“å‡º
 legend('r_1', 'r_2', 'ya_1','ya_2');
 %%
